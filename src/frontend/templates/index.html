@@ -44,6 +44,12 @@
             border-radius: 5px;
             text-align: center;
         }
+        .segmentation-preview {
+            max-width: 100%;
+            margin-top: 15px;
+            border: 1px solid #dee2e6;
+            border-radius: 0.25rem;
+        }
     </style>
 </head>
 <body>
@@ -72,19 +78,31 @@
                     <div class="card-body">
                         <form id="uploadForm" enctype="multipart/form-data">
                             <div class="mb-3">
-                                <label for="fileUpload" class="form-label">Upload YOLO data.yaml</label>
+                                <label for="fileUpload" class="form-label">Upload Files</label>
                                 <input class="form-control" type="file" id="fileUpload" accept=".yaml,.txt,.jpg,.jpeg,.png">
-                                <div class="form-text">Upload your YOLO data.yaml file to get started.</div>
+                                <div class="form-text">Upload YOLO data.yaml, annotation.txt, or images to get started.</div>
                             </div>
                             <button type="submit" class="btn btn-primary">Upload</button>
                         </form>
                         
                         <hr>
                         
-                        <div class="mb-3">
-                            <button id="generateTexturesBtn" class="btn btn-success" disabled>Generate Textures</button>
-                            <div class="form-text">First upload a YAML file, then generate textures.</div>
+                        <div class="d-grid gap-2">
+                            <button id="downloadDatasetBtn" class="btn btn-secondary">Download Dataset</button>
+                            <button id="processSamplesBtn" class="btn btn-info">Process Sample Images</button>
+                            <button id="generateTexturesBtn" class="btn btn-success">Generate Textures</button>
                         </div>
+                    </div>
+                </div>
+                
+                <!-- Segmentation Preview -->
+                <div class="card mt-4" id="segmentationCard" style="display: none;">
+                    <div class="card-header">
+                        <h5>Segmentation Preview</h5>
+                    </div>
+                    <div class="card-body text-center">
+                        <img id="segmentationPreview" class="segmentation-preview" src="" alt="Segmentation Preview">
+                        <p class="mt-2" id="segmentationInfo">Segmentation detected <span id="masksCount">0</span> parts.</p>
                     </div>
                 </div>
             </div>
@@ -98,7 +116,7 @@
                     <div class="card-body">
                         <div id="materialsContainer" class="row">
                             <div class="col-12">
-                                <p class="text-center text-muted">No materials available. Upload a YOLO data.yaml file to get started.</p>
+                                <p class="text-center text-muted">No materials available. Upload a file or download the dataset to get started.</p>
                             </div>
                         </div>
                     </div>
@@ -147,6 +165,8 @@
         const uploadForm = document.getElementById('uploadForm');
         const fileUpload = document.getElementById('fileUpload');
         const generateTexturesBtn = document.getElementById('generateTexturesBtn');
+        const downloadDatasetBtn = document.getElementById('downloadDatasetBtn');
+        const processSamplesBtn = document.getElementById('processSamplesBtn');
         const materialsContainer = document.getElementById('materialsContainer');
         const textureOptionsContainer = document.getElementById('textureOptionsContainer');
         const materialName = document.getElementById('materialName');
@@ -154,6 +174,9 @@
         const applyTextureBtn = document.getElementById('applyTextureBtn');
         const loadingSpinner = document.getElementById('loadingSpinner');
         const loadingMessage = document.getElementById('loadingMessage');
+        const segmentationCard = document.getElementById('segmentationCard');
+        const segmentationPreview = document.getElementById('segmentationPreview');
+        const masksCount = document.getElementById('masksCount');
 
         // Initialize Bootstrap modal
         document.addEventListener('DOMContentLoaded', function() {
@@ -198,7 +221,14 @@
                     if (data.materials) {
                         materialsData = data.materials;
                         renderMaterials(materialsData);
-                        generateTexturesBtn.disabled = false;
+                    }
+                    
+                    // Check if there's segmentation data
+                    if (data.visualization_path) {
+                        // Show segmentation preview
+                        segmentationPreview.src = '/output/' + data.visualization_path.split('/').pop();
+                        masksCount.textContent = data.masks_count || '?';
+                        segmentationCard.style.display = 'block';
                     }
                     
                     alert('File uploaded successfully!');
@@ -213,13 +243,83 @@
             }
         });
 
+        // Download dataset from Roboflow
+        downloadDatasetBtn.addEventListener('click', async function() {
+            showLoading('Downloading dataset from Roboflow...');
+            
+            try {
+                const response = await fetch('/api/download_dataset', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({})
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    if (data.materials) {
+                        materialsData = data.materials;
+                        renderMaterials(materialsData);
+                    }
+                    
+                    alert(`Dataset downloaded successfully to ${data.dataset_path}`);
+                } else {
+                    alert(`Error: ${data.error}`);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while downloading the dataset');
+            } finally {
+                hideLoading();
+            }
+        });
+
+        // Process sample images
+        processSamplesBtn.addEventListener('click', async function() {
+            showLoading('Processing sample images...');
+            
+            try {
+                const response = await fetch('/api/process_sample_images', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({})
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    if (data.materials) {
+                        materialsData = data.materials;
+                        renderMaterials(materialsData);
+                    }
+                    
+                    // Check if there are results
+                    if (data.results && data.results.length > 0) {
+                        // Show the first result as preview
+                        const firstResult = data.results[0];
+                        segmentationPreview.src = '/output/' + firstResult.visualization_path.split('/').pop();
+                        masksCount.textContent = firstResult.masks_count || '?';
+                        segmentationCard.style.display = 'block';
+                    }
+                    
+                    alert(`Processed ${data.results ? data.results.length : 0} sample images`);
+                } else {
+                    alert(`Error: ${data.error}`);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while processing sample images');
+            } finally {
+                hideLoading();
+            }
+        });
+
         // Generate textures
         generateTexturesBtn.addEventListener('click', async function() {
-            if (!materialsData) {
-                alert('No materials data available. Please upload a YAML file first.');
-                return;
-            }
-            
             showLoading('Generating textures...');
             
             try {
@@ -259,7 +359,6 @@
                     const data = await response.json();
                     materialsData = data;
                     renderMaterials(materialsData);
-                    generateTexturesBtn.disabled = false;
                 } else {
                     const errorData = await response.json();
                     console.error('Error fetching materials:', errorData.error);
@@ -276,7 +375,7 @@
             if (!data || !data.materials || data.materials.length === 0) {
                 materialsContainer.innerHTML = `
                     <div class="col-12">
-                        <p class="text-center text-muted">No materials available. Upload a YOLO data.yaml file to get started.</p>
+                        <p class="text-center text-muted">No materials available. Upload a file or download the dataset to get started.</p>
                     </div>
                 `;
                 return;

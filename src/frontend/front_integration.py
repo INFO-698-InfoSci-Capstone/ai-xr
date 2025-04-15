@@ -7,13 +7,13 @@ import yaml
 import glob
 from typing import Dict, List, Optional
 
-# Import from our modules
 # Add parent directory to path for imports to work
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Import our custom modules
-from dynamic_description_generator import DynamicDescriptionGenerator
-from texture_generator import TextureGenerator
+from texture_generation.dynamic_description_generator import DynamicDescriptionGenerator
+from texture_generation.texture_generator import TextureGenerator
+from texture_generation.annotation_integration import AnnotationInterface
 
 # Create Flask app
 app = Flask(__name__, 
@@ -32,6 +32,7 @@ for folder in [UPLOAD_FOLDER, OUTPUT_FOLDER, TEXTURE_FOLDER]:
 # Initialize our classes
 description_generator = DynamicDescriptionGenerator(use_ai_model=False)
 texture_generator = TextureGenerator()
+annotation_interface = AnnotationInterface(output_dir=OUTPUT_FOLDER)
 
 @app.route('/')
 def index():
@@ -74,35 +75,16 @@ def process_yaml_file(yaml_path):
         if not class_names:
             return jsonify({'error': 'No class names found in YAML file'}), 400
         
+        # Set the class names in the annotation interface
+        annotation_interface.class_names = class_names
+        
         # Generate descriptions and texture suggestions
-        results = {}
-        for idx, class_name in enumerate(class_names):
-            description = description_generator.get_material_description(class_name)
-            texture_suggestions = description_generator.get_texture_suggestions(class_name)
-            
-            results[class_name] = {
-                'id': idx,
-                'name': class_name,
-                'description': description,
-                'texture_suggestions': texture_suggestions
-            }
-        
-        # Save the results to a JSON file
-        output_path = os.path.join(OUTPUT_FOLDER, 'material_descriptions.json')
-        frontend_data = {
-            'materials': list(results.values()),
-            'timestamp': description_generator._get_timestamp(),
-            'version': '1.0'
-        }
-        
-        with open(output_path, 'w') as f:
-            json.dump(frontend_data, f, indent=2)
+        materials_data = generate_materials_data(class_names)
         
         return jsonify({
             'success': True,
             'message': f"Processed {len(class_names)} classes",
-            'output_path': output_path,
-            'materials': frontend_data
+            'materials': materials_data
         })
     
     except Exception as e:
@@ -111,7 +93,7 @@ def process_yaml_file(yaml_path):
 def process_label_file(label_path):
     """Process a YOLO label file"""
     try:
-        # Parse the label file
+        # Extract class IDs from the label file
         with open(label_path, 'r') as f:
             lines = f.readlines()
         
@@ -123,27 +105,154 @@ def process_label_file(label_path):
                 class_id = int(parts[0])
                 class_ids.add(class_id)
         
+        if not class_ids:
+            return jsonify({'error': 'No class IDs found in label file'}), 400
+        
+        # Get material information for each class
+        materials = []
+        for class_id in sorted(class_ids):
+            materials.append(annotation_interface.get_material_info(class_id))
+        
+        # Create materials data
+        materials_data = {
+            'materials': materials,
+            'timestamp': annotation_interface._get_timestamp(),
+            'version': '1.0'
+        }
+        
+        # Save to file
+        output_path = os.path.join(OUTPUT_FOLDER, 'material_descriptions.json')
+        with open(output_path, 'w') as f:
+            json.dump(materials_data, f, indent=2)
+        
         return jsonify({
             'success': True,
-            'message': f"Found {len(class_ids)} unique class IDs",
-            'class_ids': list(class_ids)
+            'message': f"Processed {len(class_ids)} classes from label file",
+            'materials': materials_data
         })
     
     except Exception as e:
         return jsonify({'error': f"Error processing label file: {str(e)}"}), 500
 
 def process_image_file(image_path):
-    """Process an image file"""
+    """Process an image file with YOLO annotations"""
     try:
-        # Return a simple success message with the image path
+        # Process the image using the annotation interface
+        result = annotation_interface.process_image(image_path)
+        
+        # Get all materials
+        materials_data = annotation_interface.get_all_materials()
+        
         return jsonify({
             'success': True,
-            'message': "Image uploaded successfully",
-            'image_path': image_path
+            'message': f"Processed image with {len(result['masks'])} segmentation masks",
+            'image_path': image_path,
+            'visualization_path': result['visualization_path'],
+            'materials': materials_data
         })
     
     except Exception as e:
         return jsonify({'error': f"Error processing image file: {str(e)}"}), 500
+
+def generate_materials_data(class_names):
+    """Generate materials data from class names"""
+    # Generate descriptions and texture suggestions
+    results = {}
+    for idx, class_name in enumerate(class_names):
+        description = description_generator.get_material_description(class_name)
+        texture_suggestions = description_generator.get_texture_suggestions(class_name)
+        
+        results[class_name] = {
+            'id': idx,
+            'name': class_name,
+            'description': description,
+            'texture_suggestions': texture_suggestions
+        }
+    
+    # Save the results to a JSON file
+    output_path = os.path.join(OUTPUT_FOLDER, 'material_descriptions.json')
+    frontend_data = {
+        'materials': list(results.values()),
+        'timestamp': description_generator._get_timestamp(),
+        'version': '1.0'
+    }
+    
+    with open(output_path, 'w') as f:
+        json.dump(frontend_data, f, indent=2)
+    
+    return frontend_data
+
+@app.route('/api/download_dataset', methods=['POST'])
+def download_dataset():
+    """Download dataset from Roboflow"""
+    try:
+        # Download the dataset
+        dataset_path = annotation_interface.download_dataset()
+        
+        # Get all materials
+        materials_data = annotation_interface.get_all_materials()
+        
+        return jsonify({
+            'success': True,
+            'message': f"Downloaded dataset to {dataset_path}",
+            'dataset_path': dataset_path,
+            'materials': materials_data
+        })
+    
+    except Exception as e:
+        return jsonify({'error': f"Error downloading dataset: {str(e)}"}), 500
+
+@app.route('/api/process_sample_images', methods=['POST'])
+def process_sample_images():
+    """Process sample images from the dataset"""
+    try:
+        if not annotation_interface.dataset_path:
+            # Try to download the dataset first
+            dataset_path = annotation_interface.download_dataset()
+        else:
+            dataset_path = annotation_interface.dataset_path
+        
+        # Get images from the dataset
+        test_dir = os.path.join(dataset_path, "test")
+        images_dir = os.path.join(test_dir, "images")
+        
+        if not os.path.exists(images_dir):
+            return jsonify({'error': f"Images directory not found: {images_dir}"}), 404
+        
+        # Find image files
+        image_files = sorted([
+            os.path.join(images_dir, f) for f in os.listdir(images_dir)
+            if f.endswith(('.jpg', '.jpeg', '.png'))
+        ])
+        
+        if not image_files:
+            return jsonify({'error': "No image files found"}), 404
+        
+        # Process up to 3 images
+        results = []
+        for img_file in image_files[:3]:
+            try:
+                result = annotation_interface.process_image(img_file)
+                results.append({
+                    'image_path': img_file,
+                    'visualization_path': result['visualization_path'],
+                    'masks_count': len(result['masks'])
+                })
+            except Exception as e:
+                print(f"Error processing {img_file}: {e}")
+        
+        # Get all materials
+        materials_data = annotation_interface.get_all_materials()
+        
+        return jsonify({
+            'success': True,
+            'message': f"Processed {len(results)} sample images",
+            'results': results,
+            'materials': materials_data
+        })
+    
+    except Exception as e:
+        return jsonify({'error': f"Error processing sample images: {str(e)}"}), 500
 
 @app.route('/api/generate_textures', methods=['POST'])
 def generate_textures():
@@ -159,7 +268,15 @@ def generate_textures():
         
         # Check if the file exists
         if not os.path.exists(materials_json_path):
-            return jsonify({'error': 'Materials JSON file not found'}), 404
+            # Try to generate materials data from the annotation interface
+            materials_data = annotation_interface.get_all_materials()
+            
+            if not materials_data['materials']:
+                return jsonify({'error': 'No materials data available. Please upload a file or download a dataset first.'}), 404
+        else:
+            # Load the materials data
+            with open(materials_json_path, 'r') as f:
+                materials_data = json.load(f)
         
         # Generate textures
         texture_paths = texture_generator.process_materials_json(
@@ -191,10 +308,15 @@ def get_materials():
         materials_json_path = os.path.join(OUTPUT_FOLDER, 'material_descriptions.json')
         
         if not os.path.exists(materials_json_path):
-            return jsonify({'error': 'No materials data available'}), 404
-        
-        with open(materials_json_path, 'r') as f:
-            materials_data = json.load(f)
+            # Try to generate materials data from the annotation interface
+            materials_data = annotation_interface.get_all_materials()
+            
+            if not materials_data['materials']:
+                return jsonify({'error': 'No materials data available. Please upload a file or download a dataset first.'}), 404
+        else:
+            # Load the materials data
+            with open(materials_json_path, 'r') as f:
+                materials_data = json.load(f)
         
         return jsonify(materials_data)
     
@@ -228,15 +350,37 @@ def get_textures(material_name):
     except Exception as e:
         return jsonify({'error': f"Error retrieving textures: {str(e)}"}), 500
 
-@app.route('/textures/<path:filename>')
-def serve_texture(filename):
-    """Serve texture files"""
-    return send_from_directory(TEXTURE_FOLDER, filename)
+@app.route('/api/segmentation/<image_name>', methods=['GET'])
+def get_segmentation(image_name):
+    """Get segmentation results for an image"""
+    try:
+        base_name = os.path.splitext(image_name)[0]
+        
+        if base_name not in annotation_interface.annotation_results:
+            return jsonify({'error': f"No segmentation results for {image_name}"}), 404
+        
+        return jsonify({
+            'success': True,
+            'result': annotation_interface.annotation_results[base_name]
+        })
+    
+    except Exception as e:
+        return jsonify({'error': f"Error retrieving segmentation results: {str(e)}"}), 500
+
+@app.route('/uploads/<path:filename>')
+def serve_upload(filename):
+    """Serve uploaded files"""
+    return send_from_directory(UPLOAD_FOLDER, filename)
 
 @app.route('/output/<path:filename>')
 def serve_output(filename):
     """Serve output files"""
     return send_from_directory(OUTPUT_FOLDER, filename)
+
+@app.route('/textures/<path:filename>')
+def serve_texture(filename):
+    """Serve texture files"""
+    return send_from_directory(TEXTURE_FOLDER, filename)
 
 def main():
     """Main entry point for the frontend application"""
@@ -244,10 +388,23 @@ def main():
     parser.add_argument("--host", type=str, default="127.0.0.1", help="Host to run the server on")
     parser.add_argument("--port", type=int, default=5000, help="Port to run the server on")
     parser.add_argument("--debug", action="store_true", help="Run in debug mode")
+    parser.add_argument("--download-dataset", action="store_true", help="Download dataset from Roboflow")
     
     args = parser.parse_args()
     
+    # Download dataset if requested
+    if args.download_dataset:
+        try:
+            dataset_path = annotation_interface.download_dataset()
+            print(f"Downloaded dataset to {dataset_path}")
+            
+            # Process sample images
+            process_sample_images()
+        except Exception as e:
+            print(f"Error downloading dataset: {e}")
+    
     # Run the Flask app
+    print(f"Starting frontend server at http://{args.host}:{args.port}")
     app.run(host=args.host, port=args.port, debug=args.debug)
 
 if __name__ == "__main__":
