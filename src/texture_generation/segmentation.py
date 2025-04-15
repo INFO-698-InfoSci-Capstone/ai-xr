@@ -140,4 +140,4 @@ def display_sample_with_masks(class_names,image_files,labels_dir,img_idx=0):
     return image, masks, class_ids
 
 # Display first sample image
-image, masks, class_ids = display_sample_with_masks(0)
+# image, masks, class_ids = display_sample_with_masks(0)
