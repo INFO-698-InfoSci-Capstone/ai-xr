@@ -1,0 +1,105 @@
+body {
+    background-color: #f8f9fa;
+}
+
+.preview-container {
+    max-height: 400px;
+    overflow: hidden;
+}
+
+#image-preview {
+    max-height: 300px;
+    object-fit: contain;
+}
+
+.result-image {
+    max-width: 100%;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.comparison-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 20px;
+}
+
+.image-card {
+    flex: 1;
+    min-width: 300px;
+    max-width: 500px;
+    margin-bottom: 20px;
+}
+
+.processing-info {
+    background-color: #e9ecef;
+    border-radius: 4px;
+    padding: 10px;
+    margin: 20px 0;
+    text-align: center;
+}
+
+/* New styles for hover highlighting feature */
+.result-container {
+    position: relative;
+    display: inline-block;
+}
+
+.mask-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+.class-legend {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin: 15px 0;
+    gap: 10px;
+}
+
+.class-item {
+    display: flex;
+    align-items: center;
+    margin: 5px;
+    cursor: pointer;
+    padding: 5px 10px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.class-item:hover {
+    background-color: #f8f9fa;
+}
+
+.color-box {
+    width: 20px;
+    height: 20px;
+    margin-right: 8px;
+    border-radius: 3px;
+    border: 1px solid rgba(0,0,0,0.2);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .comparison-container {
+        flex-direction: column;
+    }
+    
+    .image-card {
+        max-width: 100%;
+    }
+    
+    .class-legend {
+        flex-direction: column;
+        align-items: center;
+    }
+}

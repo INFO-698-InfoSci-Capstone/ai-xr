@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Segmentation Results</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .result-container {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .result-image {
+            max-width: 100%;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .mask-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+        
+        .class-legend {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin: 15px 0;
+            gap: 10px;
+        }
+        
+        .class-item {
+            display: flex;
+            align-items: center;
+            margin: 5px;
+            cursor: pointer;
+            padding: 5px 10px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+        
+        .class-item:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .color-box {
+            width: 20px;
+            height: 20px;
+            margin-right: 8px;
+            border-radius: 3px;
+            border: 1px solid rgba(0,0,0,0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-10">
+                <div class="card shadow">
+                    <div class="card-header bg-success text-white">
+                        <h3 class="text-center mb-0">Segmentation Results</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="text-center mb-3">
+                            <p>Processing completed in {{ processing_time }} seconds</p>
+                        </div>
+
+                        <div class="comparison-container">
+                            <div class="image-card">
+                                <div class="card">
+                                    <div class="card-header bg-light">
+                                        <h5 class="mb-0">Original Image</h5>
+                                    </div>
+                                    <div class="card-body text-center">
+                                        <img src="{{ url_for('static', filename=original_image) }}" class="result-image" alt="Original Image">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="image-card">
+                                <div class="card">
+                                    <div class="card-header bg-light">
+                                        <h5 class="mb-0">Segmentation Result</h5>
+                                    </div>
+                                    <div class="card-body text-center">
+                                        <div class="result-container">
+                                            <!-- Main segmentation result -->
+                                            <img src="{{ url_for('static', filename=result_image) }}" class="result-image" id="result-image" alt="Segmentation Result">
+                                            
+                                            <!-- Mask overlays (hidden by default) -->
+                                            {% if masks_data %}
+                                                {% for class_name, mask_info in masks_data.items() %}
+                                                <img 
+                                                    src="{{ url_for('static', filename=mask_info.filename) }}" 
+                                                    class="mask-overlay" 
+                                                    id="mask-{{ class_name }}" 
+                                                    data-class="{{ class_name }}"
+                                                    alt="{{ class_name }} mask"
+                                                    style="filter: opacity(0.7) drop-shadow(0 0 0 rgb{{ mask_info.color }});"
+                                                >
+                                                {% endfor %}
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <!-- Class legend for highlighting -->
+                                        {% if masks_data %}
+                                        <div class="class-legend mt-3">
+                                            <div class="legend-title w-100 text-center mb-2">
+                                                <strong>Hover over a class to highlight:</strong>
+                                            </div>
+                                            {% for class_name, mask_info in masks_data.items() %}
+                                            <div class="class-item" data-class="{{ class_name }}">
+                                                <div class="color-box" style="background-color: rgb{{ mask_info.color }};"></div>
+                                                <span>{{ class_name }}</span>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="text-center mt-4">
+                            <a href="{{ url_for('index') }}" class="btn btn-primary">Process Another Image</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    
+    <script>
+        $(document).ready(function() {
+            // Highlight on legend hover
+            $('.class-item').on('mouseenter', function() {
+                const className = $(this).data('class');
+                $(`#mask-${className}`).css('opacity', '1');
+            }).on('mouseleave', function() {
+                const className = $(this).data('class');
+                $(`#mask-${className}`).css('opacity', '0');
+            });
+            
+            // Alternative: Click to toggle highlight
+            $('.class-item').on('click', function() {
+                const className = $(this).data('class');
+                const mask = $(`#mask-${className}`);
+                
+                // Toggle opacity
+                if (mask.css('opacity') === '1') {
+                    mask.css('opacity', '0');
+                    $(this).css('background-color', '');
+                } else {
+                    // Hide all masks first
+                    $('.mask-overlay').css('opacity', '0');
+                    $('.class-item').css('background-color', '');
+                    
+                    // Show selected mask
+                    mask.css('opacity', '1');
+                    $(this).css('background-color', '#e9ecef');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
