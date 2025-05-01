@@ -1,0 +1,27 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+flask = "*"
+flask-sqlalchemy = "*"
+flask-cors = "*"
+flask-limiter = "*"
+flasgger = "*"
+python-dotenv = "*"
+psycopg2-binary = "*"
+opencv-python = "*"
+numpy = "*"
+pillow = "*"
+roboflow = "*"
+inference = "*"
+diffusers = "*"
+transformers = "*"
+accelerate = "*"
+safetensors = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.12"

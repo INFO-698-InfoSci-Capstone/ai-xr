@@ -1,0 +1,17 @@
+flask
+flask-sqlalchemy
+flask-cors
+flask-limiter
+flasgger
+python-dotenv
+psycopg2-binary
+opencv-python
+numpy
+Pillow
+roboflow
+inference
+diffusers
+transformers
+accelerate
+safetensors
+
