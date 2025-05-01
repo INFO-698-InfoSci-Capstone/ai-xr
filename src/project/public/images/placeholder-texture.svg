@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg width="200" height="200" version="1.1" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-  <rect width="200" height="200" fill="#f0f0f0"/>
-  <g fill="#999">
-    <path d="m90 85h20v30h-20z"/>
-    <path d="m85 90v20h30v-20zm5 5h20v10h-20z"/>
-  </g>
-  <text x="100" y="140" text-anchor="middle" fill="#666" font-family="Arial" font-size="12">Texture not found</text>
-</svg> 
