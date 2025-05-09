@@ -7,8 +7,6 @@ This project is an AI-powered texture synthesis platform for generating, preview
 
 ---
 
-
-
 The system consists of:
 - **Frontend** (in `project/`): A modern web app for users to select, preview, and apply textures to segmented objects in images.
 - **Backend** (in `texture_generation/` and `segmentation_app/`): Python services for texture generation (using PIL and Stable Diffusion), instance segmentation, and database management.
@@ -43,7 +41,7 @@ CONDUCT.md                    # Code of conduct
 ```
 ## architecture 
 
-![Texture AI Architecture Diagram](./architecture_texture_ai.jpg)
+![Texture AI Architecture Diagram](./architecture_texture_ai.png)
 ---
 
 ## Frontend (`project/`)
