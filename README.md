@@ -7,22 +7,7 @@ This project is an AI-powered texture synthesis platform for generating, preview
 
 ---
 
-## Future Work
 
-- **Room-scale Texture Application:**  
-  Extend the platform to apply generated textures to entire rooms or multiple objects within a room, rather than just individual pieces of furniture as is currently supported.
-
-- **Dockerization & Cloud Deployment:**  
-  Create Dockerfiles and deployment scripts to make the platform easy to deploy on any server or cloud provider.
-
-- **AR/VR Integration:**  
-  Add support for real-time texture preview and interaction in Augmented Reality (AR) and Virtual Reality (VR) environments, possibly using WebXR or similar technologies.
-
-- **Custom Texture Upload & Editing:**  
-  Enable users to upload their own textures or edit generated textures (e.g., adjust color, scale, or pattern).
-
-
----
 
 The system consists of:
 - **Frontend** (in `project/`): A modern web app for users to select, preview, and apply textures to segmented objects in images.
@@ -56,7 +41,9 @@ README.md                     # Project documentation
 LICENSE                       # License information
 CONDUCT.md                    # Code of conduct
 ```
+## architecture 
 
+![Texture AI Architecture Diagram](./architecture_texture_ai.jpg)
 ---
 
 ## Frontend (`project/`)
@@ -91,7 +78,22 @@ CONDUCT.md                    # Code of conduct
 - Stable Diffusion: Used for advanced/AI-generated textures. Requires model weights and GPU support.
 
 ---
+## Future Work
 
+- **Room-scale Texture Application:**  
+  Extend the platform to apply generated textures to entire rooms or multiple objects within a room, rather than just individual pieces of furniture as is currently supported.
+
+- **Dockerization & Cloud Deployment:**  
+  Create Dockerfiles and deployment scripts to make the platform easy to deploy on any server or cloud provider.
+
+- **AR/VR Integration:**  
+  Add support for real-time texture preview and interaction in Augmented Reality (AR) and Virtual Reality (VR) environments, possibly using WebXR or similar technologies.
+
+- **Custom Texture Upload & Editing:**  
+  Enable users to upload their own textures or edit generated textures (e.g., adjust color, scale, or pattern).
+
+
+---
 
 ## Authors & Contributions
 Meghashree n @Lucifer970901  - data handling,instance segmentation and gradient mapping,
