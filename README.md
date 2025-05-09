@@ -102,7 +102,7 @@ shreya r Kadole - UI/UX.
 
 ---
 ## Mentor
-Matthew Briggs 
+Matthew J Briggs 
 
 
 
