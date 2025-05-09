@@ -30,7 +30,7 @@ texture_generation/           # Backend for texture generation and management
 |-- create_textures.py        # Script for generating procedural textures
 |-- requirements.txt          # Python dependencies
 |-- models.py                 # Database models
-|-- utils.py                  # Utility functions for texture generation, gradient mapping and getting binary masks from instance segmentation
+|-- utils.py                  # Utility functions for texture generation, gradient mapping, binary masks of instance segmentation
 |-- static/                   # Static files (if any)
 |-- init_db.py / .sql         # Database initialization scripts
 |-- update_data.sql           # SQL scripts for updating texture data
