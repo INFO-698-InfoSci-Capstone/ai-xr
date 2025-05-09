@@ -34,25 +34,24 @@ The system consists of:
 
 ```
 project/                      # Frontend web application (React, Vite, Tailwind)
-?
-??? src/                      # React source code (components, pages, hooks, etc.)
-??? public/textures/          # Generated texture images (used by frontend)
-??? index.html                # Main HTML entry point
-??? package.json              # Frontend dependencies and scripts
-??? ...                       # Other frontend config files
+|
+|-- src/                      # React source code (components, pages, hooks, etc.)
+|-- public/textures/          # Generated texture images (used by frontend)
+|-- index.html                # Main HTML entry point
+|-- package.json              # Frontend dependencies and scripts
+|-- ...                       # Other frontend config files
 
 texture_generation/           # Backend for texture generation and management
-?
-??? app.py                    # Main backend API (Flask or FastAPI)
-??? create_textures.py        # Script for generating procedural textures
-??? requirements.txt          # Python dependencies
-??? models.py                 # Database models
-??? utils.py                  # Utility functions for texture generation
-??? static/                   # Static files (if any)
-??? init_db.py / .sql         # Database initialization scripts
-??? update_data.sql           # SQL scripts for updating texture data
-??? ...                       # Other backend scripts and helpers
-
+|
+|-- app.py                    # Main backend API (Flask or FastAPI)
+|-- create_textures.py        # Script for generating procedural textures
+|-- requirements.txt          # Python dependencies
+|-- models.py                 # Database models
+|-- utils.py                  # Utility functions for texture generation
+|-- static/                   # Static files (if any)
+|-- init_db.py / .sql         # Database initialization scripts
+|-- update_data.sql           # SQL scripts for updating texture data
+|-- ...                       # Other backend scripts and helpers
 README.md                     # Project documentation
 LICENSE                       # License information
 CONDUCT.md                    # Code of conduct
